@@ -22,7 +22,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://lost-and-found-frontend-five-mocha.vercel.app",  // ✅ removed trailing slash
+  "https://lost-and-found-frontend-five-mocha.vercel.app",
+  "https://lost-and-found-frontend-i0h3c5puj-abdulrahman-s-projects16.vercel.app",
   process.env.FRONTEND_URL
 ].filter(Boolean);  // ✅ removes undefined if FRONTEND_URL isn't set
 
