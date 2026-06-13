@@ -7,7 +7,6 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import your routes
 import Message from './models/Message.js';
 import chatRoutes from './routes/chatRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -20,40 +19,51 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Consolidated CORS Configuration
 const allowedOrigins = [
-  "http://localhost:5173", 
-  "https://your-future-vercel-app.vercel.app", 
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://lost-and-found-frontend-five-mocha.vercel.app",  // ✅ removed trailing slash
   process.env.FRONTEND_URL
-];
+].filter(Boolean);  // ✅ removes undefined if FRONTEND_URL isn't set
 
 app.use(cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
+  origin: (origin, callback) => {
+    // ✅ allow requests with no origin (Render health checks, Postman, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }));
 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Simple Logger
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);
   next();
 });
 
-// API Routing
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api', chatRoutes);
 
-// Socket.io Setup
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { 
-    origin: allowedOrigins, 
-    methods: ["GET", "POST"] 
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Socket CORS blocked: ${origin}`));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -65,7 +75,7 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     try {
       await Message.create({
-        room:     data.room,
+        room:       data.room,
         senderId:   data.senderId,
         senderName: data.senderName,
         text:       data.text
@@ -77,7 +87,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Database Connection
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("Connected to MongoDB");
