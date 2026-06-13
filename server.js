@@ -6,6 +6,8 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// Import your routes
 import Message from './models/Message.js';
 import chatRoutes from './routes/chatRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -18,19 +20,23 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Middleware
-const cors = require('cors');
+// Consolidated CORS Configuration
+const allowedOrigins = [
+  "http://localhost:5173", 
+  "https://your-future-vercel-app.vercel.app", 
+  process.env.FRONTEND_URL
+];
 
-// Add this to your middleware section
 app.use(cors({
-    origin: ["http://localhost:5173", "https://your-future-vercel-app.vercel.app"],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
 }));
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", credentials: true }));
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Simple Logger
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);
   next();
@@ -42,10 +48,13 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api', chatRoutes);
 
-// Socket.io Setup — must come BEFORE use of io/server
+// Socket.io Setup
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
+  cors: { 
+    origin: allowedOrigins, 
+    methods: ["GET", "POST"] 
+  }
 });
 
 io.on('connection', (socket) => {
@@ -56,7 +65,7 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     try {
       await Message.create({
-        room:       data.room,
+        room:     data.room,
         senderId:   data.senderId,
         senderName: data.senderName,
         text:       data.text
