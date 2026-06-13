@@ -22,15 +22,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://lost-and-found-frontend-five-mocha.vercel.app",
-  "https://lost-and-found-frontend-i0h3c5puj-abdulrahman-s-projects16.vercel.app",
   process.env.FRONTEND_URL
-].filter(Boolean);  // ✅ removes undefined if FRONTEND_URL isn't set
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;                          // Postman, health checks
+  if (origin.endsWith('.vercel.app')) return true;   // ✅ any Vercel deployment URL
+  if (allowedOrigins.includes(origin)) return true;  // localhost + FRONTEND_URL
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
-    // ✅ allow requests with no origin (Render health checks, Postman, etc.)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked: ${origin}`));
@@ -57,7 +61,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`Socket CORS blocked: ${origin}`));
